@@ -28,9 +28,16 @@ async function run() {
 
         app.post('/booking', async (req, res) => {
             const booking = req.body;
+            const query = { treatment: booking.treatment, date: booking.date, patient: booking.patient }
+            const exists = await bookingCollection.findOne(query);
+            if (exists) {
+                return res.send({ success: false, booking: exists })
+            }
             const result = await bookingCollection.insertOne(booking);
-            res.send(result);
+            res.send({ success: true, result });
         })
+
+
 
     }
     finally {
@@ -47,3 +54,12 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
     console.log(`Doctor app listening on port ${port}`)
 })
+
+/**
+ * API Naming Convention
+ * app.get('/booking') // get all bookings in this collection. or get more than one or by filter
+ * app.get('/booking/:id') // get a specific booking 
+ * app.post('/booking') // add a new booking
+ * app.patch('/booking/:id) // update 
+ * app.delete('/booking/:id) //
+*/
