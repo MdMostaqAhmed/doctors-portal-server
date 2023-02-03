@@ -37,6 +37,21 @@ async function run() {
             res.send({ success: true, result });
         })
 
+        app.get('/available', async (req, res) => {
+            const services = await serviceCollection.find().toArray();
+            const date = req.query.date || "Jan 29, 2023";
+            const query = { date: date }
+            const bookings = await bookingCollection.find(query).toArray();
+
+            services.forEach(service => {
+                const serviceBookings = bookings.filter(b => b.treatment === service.name);
+                const booked = serviceBookings.map(s => s.slot);
+                const available = service.slots.filter(s => !booked.includes(s))
+                service.available = available
+            })
+            res.send(services) 
+        })
+
 
 
     }
@@ -48,7 +63,7 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-    res.send('Hello World!')
+    res.send('Hello Worldzzz!')
 })
 
 app.listen(port, () => {
