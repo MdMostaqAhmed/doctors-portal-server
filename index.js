@@ -19,11 +19,19 @@ async function run() {
         const serviceCollection = client.db("doctors_portal").collection('services')
         const bookingCollection = client.db("doctors_portal").collection('bookings')
 
+
         app.get('/service', async (req, res) => {
             const query = {};
             const cursor = serviceCollection.find(query);
             const services = await cursor.toArray();
             res.send(services)
+        })
+
+        app.get('/bookings', async (req, res) => {
+            const patient = req.query.patient;
+            const query = { patient: patient };
+            const bookings = await bookingCollection.find(query).toArray();
+            res.send(bookings);
         })
 
         app.post('/booking', async (req, res) => {
@@ -37,20 +45,41 @@ async function run() {
             res.send({ success: true, result });
         })
 
+        // Warning: This is not the proper way to query multiple collection. we should use Aggregation pipeline
+        // After learning more about mongodb. use aggregate, lookup, pipeline, match, group
         app.get('/available', async (req, res) => {
+            const date = req.query.date || "Feb 13, 2023";
+
+            // step 1:  get all services
             const services = await serviceCollection.find().toArray();
-            const date = req.query.date || "Jan 29, 2023";
-            const query = { date: date }
+
+            // step 2: get the booking of that day. output: [{}, {}, {}, {}, {}, {}]
+            const query = { date: date };
             const bookings = await bookingCollection.find(query).toArray();
 
+            // step 3: for each services, find bookings for the service
             services.forEach(service => {
+                // ste p4: find bookings from that service. output:[{},{}]
                 const serviceBookings = bookings.filter(b => b.treatment === service.name);
+                // step 5: select slots for the service bookings: ["",""]
                 const booked = serviceBookings.map(s => s.slot);
+                // step 6: select those slots that are mot in booked
                 const available = service.slots.filter(s => !booked.includes(s))
-                service.available = available
+                // step 7: set available to slots to make it easier
+                service.slots = available;
             })
-            res.send(services) 
+
+            res.send(services);
         })
+
+        /**
+   * API Naming Convention
+   * app.get('/booking') // get all bookings in this collection. or get more than one or by filter
+   * app.get('/booking/:id') // get a specific booking 
+   * app.post('/booking') // add a new booking
+   * app.patch('/booking/:id) //
+   * app.delete('/booking/:id) //
+  */
 
 
 
