@@ -32,14 +32,16 @@ function verifyJWT(req, res, next) {
 async function run() {
     try {
         await client.connect();
-        const serviceCollection = client.db("doctors_portal").collection('services')
-        const bookingCollection = client.db("doctors_portal").collection('bookings')
-        const usersCollection = client.db("doctors_portal").collection('users')
+        const serviceCollection = client.db("doctors_portal").collection('services');
+        const bookingCollection = client.db("doctors_portal").collection('bookings');
+        const usersCollection = client.db("doctors_portal").collection('users');
+        const doctorCollection = client.db("doctors_portal").collection('doctors');
+
 
 
         app.get('/service', async (req, res) => {
             const query = {};
-            const cursor = serviceCollection.find(query);
+            const cursor = serviceCollection.find(query).project({ name: 1 });
             const services = await cursor.toArray();
             res.send(services)
         })
@@ -137,6 +139,12 @@ async function run() {
             const result = await usersCollection.updateOne(filter, updateDoc, options);
             const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1d' });
             res.send({ result, token })
+        })
+
+        app.post('/doctor', async (req, res) => {
+            const doctor = req.body;
+            const result = await doctorCollection.insertOne(doctor);
+            res.send(result);
         })
 
         /**
